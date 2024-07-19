@@ -37,6 +37,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     networks:
       cdc:
 
@@ -47,16 +49,18 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_DB: financial_db
+    command: [ 'postgres', '-c', 'wal_level=logical' ]
     ports:
       - "5432:5432"
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "psotgres" ]
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
-      - postgres:/var/lib/postgesql/data
+      - ./postgres/postgres_init:/docker-entrypoint-initdb.d
+      - postgres:/var/lib/postgresql/data
     networks:
       cdc:
 
@@ -114,9 +118,9 @@ services:
       BOOTSTRAP_SERVERS: broker:29092
       CONNECT_REST_ADVERTISED_HOST_NAME: debezium
       GROUP_ID: 1
-      CONFIG_STORAGE_TOPIC: connect_configs
-      STATUS_STORAGE_TOPIC: connect_statuses
-      OFFSET_STORAGE_TOPIC: connect_offsets
+      CONFIG_STORAGE_TOPIC: debezium_connect_configs
+      STATUS_STORAGE_TOPIC: debezium_connect_statuses
+      OFFSET_STORAGE_TOPIC: debezium_connect_offsets
       KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       ENABLE_DEBEZIUM_SCRIPTING: 'true'
@@ -147,6 +151,7 @@ services:
 volumes:
   postgres:
   pgadmin:
+  kafka_data:
 
 networks:
   cdc:
